@@ -11,6 +11,13 @@ except FileNotFoundError:
     print("Error: The file 'fulltext.txt' was not found.")
     full_text = ""
     
+# Helper function that splits text into "chunks" of 512 tokens
+def split_into_chunks(text, tokenizer, max_length=500):
+    inputs = tokenizer(text, return_tensors="pt", truncation=False)
+    input_ids = inputs["input_ids"][0]
+    for i in range(0, len(input_ids), max_length):
+        yield tokenizer.decode(input_ids[i:i + max_length], skip_special_tokens=True)
+    
 if full_text:
     # Gives user the option to choose between three different lengths for
     #  the shortened text file (3/6/9 sentences)
@@ -55,31 +62,58 @@ if full_text:
     tokenizer = PegasusTokenizer.from_pretrained(model_name)
     model = PegasusForConditionalGeneration.from_pretrained(model_name)
 
-    # Creating tokens
-    tokens = tokenizer(full_text, truncation=True, padding="longest", return_tensors="pt")
+    # Split text into chunks
+    chunks = list(split_into_chunks(full_text, tokenizer))
+
+    # Summarize each chunk
+    summaries = []
+    for chunk in chunks:
+        tokens = tokenizer(chunk, truncation=True, padding="longest", return_tensors="pt")
+        encoded_summary = model.generate(**tokens)
+        decoded_summary = tokenizer.decode(
+            encoded_summary[0],
+            skip_special_tokens=True
+        )
+        summarizer = pipeline(
+            "summarization", 
+            model=model_name, 
+            tokenizer=tokenizer, 
+            framework="pt"
+        )
+        num_characters = complexity_map.get(complexity[1], 200)  
+        summary = summarizer(chunk, min_length=30, max_length=num_characters)
+        summaries.append(summary)
+
+    # Combining the summaries
+    final_summary = " "
+    for summary in summaries:
+        final_summary = final_summary + summary[0]["summary_text"] + " "
     
+    # Creating tokens
+    #tokens = tokenizer(full_text, truncation=True, padding="longest", return_tensors="pt")
     # Using abstraction to summarize the text (expressed as tokens)
-    encoded_summary = model.generate(**tokens)
+    #encoded_summary = model.generate(**tokens)
 
     # Decoding encoded_summary 
-    decoded_summary = tokenizer.decode(
-          encoded_summary[0],
-          skip_special_tokens=True
-    )
+    #decoded_summary = tokenizer.decode(
+    #      encoded_summary[0],
+    #      skip_special_tokens=True
+    #)
     
     # Defining the summarization pipeline to adjust size of output
-    summarizer = pipeline(
-        "summarization", 
-        model=model_name, 
-        tokenizer=tokenizer, 
-        framework="pt"
-    )
+    #summarizer = pipeline(
+    #    "summarization", 
+    #    model=model_name, 
+    #    tokenizer=tokenizer, 
+    #    framework="pt"
+    #)
     
     # Creating summary with modified size
-    num_characters = complexity_map.get(complexity[1], 200)  
-    summary = summarizer(full_text, min_length=30, max_length=num_characters)
-    if summary:
-        summarized_text = summary[0]["summary_text"]
+    #num_characters = complexity_map.get(complexity[1], 200)  
+    #summary = summarizer(full_text, min_length=30, max_length=num_characters)
+    if final_summary:
+        #summarized_text = final_summary[0]["summary_text"]
+        summarized_text = final_summary
         try:
             with open("summarizedtext.txt", "w", encoding="utf-8") as summarized_file:
                 summarized_file.write(summarized_text)
