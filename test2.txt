@@ -1,0 +1,7 @@
+from transformers import AutoModel, AutoTokenizer
+
+# Test with a small model like distilbert
+model_name = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
+print("DistilBERT downloaded successfully!")
