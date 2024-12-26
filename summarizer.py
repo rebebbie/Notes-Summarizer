@@ -24,13 +24,19 @@ if full_text:
     complexity = input("Choose the complexity level (short, medium, long): ").strip().lower()
     
     complexity_map = {
-        "short": (3,100),
-        "medium": (6,200), #change to 10/25/40% of original length 
-        "long": (9,300)
+    "short": (3, 100),    # Short: 3 sentences, 100 characters
+    "medium": (6, 200),   # Medium: 6 sentences, 200 characters
+    "long": (9, 300)      # Long: 9 sentences, 300 characters
     }
-    
-    # If input is invalid, default to 6
-    num_sentences = complexity_map.get(complexity[0], 6)  
+
+    # Validate user input and get the appropriate values
+    if complexity in complexity_map:
+        num_sentences, num_characters = complexity_map[complexity]
+        print("num_sentences = " + str(num_sentences))
+        print("num_characters = " + str(num_characters))
+    else:
+        print("Invalid input. Defaulting to medium.")
+        num_sentences, num_characters = complexity_map["medium"]
     
     # ----- SHORTENING -----
     # For the shortened version (extracting the "best" sentences from the text), 
@@ -80,7 +86,7 @@ if full_text:
             tokenizer=tokenizer, 
             framework="pt"
         )
-        num_characters = complexity_map.get(complexity[1], 200)  
+        # Creating summary with modified size
         summary = summarizer(chunk, min_length=30, max_length=num_characters)
         summaries.append(summary)
 
@@ -89,30 +95,8 @@ if full_text:
     for summary in summaries:
         final_summary = final_summary + summary[0]["summary_text"] + " "
     
-    # Creating tokens
-    #tokens = tokenizer(full_text, truncation=True, padding="longest", return_tensors="pt")
-    # Using abstraction to summarize the text (expressed as tokens)
-    #encoded_summary = model.generate(**tokens)
-
-    # Decoding encoded_summary 
-    #decoded_summary = tokenizer.decode(
-    #      encoded_summary[0],
-    #      skip_special_tokens=True
-    #)
-    
-    # Defining the summarization pipeline to adjust size of output
-    #summarizer = pipeline(
-    #    "summarization", 
-    #    model=model_name, 
-    #    tokenizer=tokenizer, 
-    #    framework="pt"
-    #)
-    
     # Creating summary with modified size
-    #num_characters = complexity_map.get(complexity[1], 200)  
-    #summary = summarizer(full_text, min_length=30, max_length=num_characters)
     if final_summary:
-        #summarized_text = final_summary[0]["summary_text"]
         summarized_text = final_summary
         try:
             with open("summarizedtext.txt", "w", encoding="utf-8") as summarized_file:
